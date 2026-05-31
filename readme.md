@@ -56,10 +56,7 @@ ProxyPassReverse /world-api http://localhost:3002/world-api
 sudo systemctl reload apache2
 ```
 
-### 5. Access
-```
-https://inter-net.no-ip.com/worldindex.html
-```
+
 
 ## PM2 Useful Commands
 
