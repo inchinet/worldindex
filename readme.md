@@ -31,11 +31,11 @@ node worldindex-server.js
 # Open: http://localhost:3002/worldindex.html
 ```
 
-## Deploy to Linux Server (inter-net.no-ip.com)
+## Deploy to Linux Server
 
-### 1. Copy files
+### 1. Copy files to the target directory on the server.
 ```bash
-scp worldindex-server.js worldindex.html user@inter-net.no-ip.com:/var/www/nextcloud/
+sudo cp worldindex-server.js worldindex.html .
 ```
 
 ### 2. Start with PM2
