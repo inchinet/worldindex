@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>World Index Dashboard</title>
+    <style>
+        :root {
+            color-scheme: dark;
+            --bg: #08111f;
+            --bg-2: #0d1729;
+            --panel: rgba(10, 17, 32, 0.78);
+            --panel-border: rgba(148, 163, 184, 0.16);
+            --text: #e5eefb;
+            --muted: #94a3b8;
+            --good: #22c55e;
+            --bad: #ef4444;
+            --accent: #7dd3fc;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: "Segoe UI", "Trebuchet MS", system-ui, sans-serif;
+            color: var(--text);
+            background:
+                radial-gradient(circle at top left, rgba(14, 165, 233, 0.25), transparent 32%),
+                radial-gradient(circle at top right, rgba(168, 85, 247, 0.18), transparent 28%),
+                linear-gradient(180deg, #05101f 0%, #091426 48%, #060d18 100%);
+        }
+
+        .wrap {
+            max-width: 1320px;
+            margin: 0 auto;
+            padding: 24px 18px 40px;
+        }
+
+        .hero {
+            position: relative;
+            overflow: hidden;
+            border: 1px solid var(--panel-border);
+            background: linear-gradient(135deg, rgba(15, 23, 42, 0.9), rgba(7, 14, 28, 0.9));
+            backdrop-filter: blur(16px);
+            border-radius: 26px;
+            padding: 26px;
+            box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+            margin-bottom: 18px;
+        }
+
+        .hero::after {
+            content: "";
+            position: absolute;
+            inset: auto -120px -140px auto;
+            width: 320px;
+            height: 320px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(125, 211, 252, 0.22), transparent 65%);
+            pointer-events: none;
+        }
+
+        .eyebrow {
+            letter-spacing: 0.22em;
+            text-transform: uppercase;
+            color: var(--muted);
+            font-size: 0.78rem;
+            margin-bottom: 10px;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: clamp(2rem, 4vw, 3.3rem);
+            line-height: 1.03;
+        }
+
+        .subline {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+            margin-top: 14px;
+            color: var(--muted);
+            font-size: 0.96rem;
+        }
+
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border-radius: 999px;
+            border: 1px solid var(--panel-border);
+            background: rgba(255, 255, 255, 0.04);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--good);
+            box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.18);
+        }
+
+        .note {
+            margin-top: 16px;
+            color: #f8fafc;
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            background: rgba(2, 8, 23, 0.6);
+            padding: 14px 16px;
+            border-radius: 18px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 14px;
+        }
+
+        .card {
+            display: flex;
+            gap: 14px;
+            align-items: flex-start;
+            padding: 18px;
+            border-radius: 22px;
+            border: 1px solid var(--panel-border);
+            background: linear-gradient(180deg, rgba(15, 23, 42, 0.88), rgba(7, 12, 24, 0.88));
+            box-shadow: 0 14px 36px rgba(0, 0, 0, 0.2);
+            text-decoration: none;
+            color: inherit;
+            transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            border-color: rgba(125, 211, 252, 0.42);
+            box-shadow: 0 18px 42px rgba(0, 0, 0, 0.28);
+        }
+
+        .icon {
+            width: 58px;
+            height: 58px;
+            min-width: 58px;
+            border-radius: 18px;
+            display: grid;
+            place-items: center;
+            font-weight: 700;
+            font-size: 1.05rem;
+            letter-spacing: 0.04em;
+            color: white;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
+        }
+
+        .content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .topline {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            align-items: flex-start;
+        }
+
+        .symbol {
+            font-size: 1.18rem;
+            font-weight: 800;
+            letter-spacing: 0.02em;
+        }
+
+        .name {
+            margin-top: 5px;
+            color: var(--muted);
+            font-size: 0.95rem;
+        }
+
+        .price-row {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            gap: 12px;
+            margin-top: 14px;
+        }
+
+        .price {
+            font-size: 2rem;
+            font-weight: 800;
+            line-height: 1;
+            letter-spacing: -0.03em;
+        }
+
+        .meta {
+            display: grid;
+            gap: 4px;
+            justify-items: end;
+            text-align: right;
+            color: var(--muted);
+            font-size: 0.86rem;
+        }
+
+        .change {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 96px;
+            padding: 9px 12px;
+            border-radius: 999px;
+            font-weight: 700;
+            letter-spacing: 0.01em;
+        }
+
+        .positive {
+            background: rgba(34, 197, 94, 0.16);
+            color: #9ef0b6;
+        }
+
+        .negative {
+            background: rgba(239, 68, 68, 0.16);
+            color: #ffb6b6;
+        }
+
+        .neutral {
+            background: rgba(148, 163, 184, 0.14);
+            color: #d9e2f2;
+        }
+
+        .footer {
+            margin-top: 14px;
+            color: var(--muted);
+            font-size: 0.88rem;
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .error {
+            display: none;
+            margin-top: 14px;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            background: rgba(127, 29, 29, 0.28);
+            color: #fecaca;
+            padding: 14px 16px;
+            border-radius: 18px;
+        }
+
+        .skeleton {
+            min-height: 166px;
+            background: linear-gradient(90deg, rgba(255,255,255,0.03), rgba(255,255,255,0.08), rgba(255,255,255,0.03));
+            background-size: 220% 100%;
+            animation: pulse 1.15s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 220% 50%; }
+        }
+
+        @media (max-width: 880px) {
+            .grid { grid-template-columns: 1fr; }
+            .card { padding: 16px; }
+            .price { font-size: 1.7rem; }
+        }
+
+        @media (max-width: 560px) {
+            .hero { padding: 20px; }
+            .topline, .price-row { flex-direction: column; align-items: flex-start; }
+            .meta { justify-items: start; text-align: left; }
+        }
+    </style>
+</head>
+<body>
+    <main class="wrap">
+        <section class="hero">
+            <div class="eyebrow">World Exchange Markets</div>
+            <h1>Global index board, updated live.</h1>
+            <div class="subline">
+                <span class="pill"><span class="status-dot"></span><span id="refresh-state">Connecting...</span></span>
+                <span class="pill">Updated at <strong id="as-of-date">--</strong></span>
+                <span class="pill">Auto refresh: 60s</span>
+            </div>
+            <div class="note">
+                Click any row to open its market chart.
+            </div>
+            <div id="error-box" class="error"></div>
+        </section>
+
+        <section id="market-grid" class="grid">
+            <div class="card skeleton"></div>
+            <div class="card skeleton"></div>
+            <div class="card skeleton"></div>
+            <div class="card skeleton"></div>
+            <div class="card skeleton"></div>
+            <div class="card skeleton"></div>
+            <div class="card skeleton"></div>
+            <div class="card skeleton"></div>
+        </section>
+
+        <div class="footer">
+            <span>Symbols: DJI, IXIC, SPX, NI225, IX0001, KOSPI, MCSI, SOX, HSI</span>
+            <span>Source: Yahoo Finance quote page, market chart links</span>
+        </div>
+    </main>
+
+    <script>
+        const marketsOrder = ['DJI', 'IXIC', 'SPX', 'NI225', 'IX0001', 'KOSPI', 'MCSI', 'SOX', 'HSI'];
+        const REFRESH_MS = 60000; // 60s
+
+        function getApiUrl() {
+            if (location.protocol === 'file:') return 'http://localhost:3002/api/world-stocks';
+            if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+                return `${location.protocol}//${location.host}/api/world-stocks`;
+            }
+            return '/world-api';
+        }
+
+        function formatAsOf(isoString) {
+            const dt = new Date(isoString || Date.now());
+            const utc8OffsetMs = 8 * 60 * 60 * 1000;
+            const utc8 = new Date(dt.getTime() + utc8OffsetMs);
+            const y = utc8.getUTCFullYear();
+            const m = String(utc8.getUTCMonth() + 1).padStart(2, '0');
+            const d = String(utc8.getUTCDate()).padStart(2, '0');
+            const hh = String(utc8.getUTCHours()).padStart(2, '0');
+            const mm = String(utc8.getUTCMinutes()).padStart(2, '0');
+            const ss = String(utc8.getUTCSeconds()).padStart(2, '0');
+            return `${y}-${m}-${d} ${hh}:${mm}:${ss}`;
+        }
+
+        function changeClass(value) {
+            const n = Number.parseFloat(value);
+            if (Number.isNaN(n) || n === 0) return 'neutral';
+            return n > 0 ? 'positive' : 'negative';
+        }
+
+        function renderCard(stock) {
+            const card = document.createElement('a');
+            card.className = 'card';
+            card.href = stock.chart_url || '#';
+            card.target = '_blank';
+            card.rel = 'noopener noreferrer';
+
+            const accent = stock.accent || '#64748b';
+            const iconLabel = stock.icon || stock.symbol.slice(0, 2);
+            const percentClass = changeClass(stock.percent_change);
+
+            card.innerHTML = `
+                <div class="icon" style="background: linear-gradient(135deg, ${accent}, #111827);">
+                    ${iconLabel}
+                </div>
+                <div class="content">
+                    <div class="topline">
+                        <div>
+                            <div class="symbol">${stock.symbol}</div>
+                            <div class="name">${stock.name}</div>
+                        </div>
+                        <div class="change ${percentClass}">${stock.percent_change}</div>
+                    </div>
+                    <div class="price-row">
+                        <div class="price">${stock.price}</div>
+                        <div class="meta">
+                            <div>Vol: <strong>${stock.volume}</strong></div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            return card;
+        }
+
+        async function fetchWorldData() {
+            const apiUrl = getApiUrl();
+            const errorBox = document.getElementById('error-box');
+            const refreshState = document.getElementById('refresh-state');
+            const asOfDate = document.getElementById('as-of-date');
+            const grid = document.getElementById('market-grid');
+
+            refreshState.textContent = 'Refreshing...';
+
+            try {
+                const cacheBustUrl = `${apiUrl}${apiUrl.includes('?') ? '&' : '?'}t=${Date.now()}`;
+                const response = await fetch(cacheBustUrl, { cache: 'no-store' });
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const payload = await response.json();
+                const markets = Array.isArray(payload.markets) ? payload.markets : [];
+                const bySymbol = new Map(markets.map(m => [m.symbol, m]));
+                const ordered = marketsOrder.map(symbol => bySymbol.get(symbol)).filter(Boolean);
+
+                grid.innerHTML = '';
+                ordered.forEach(stock => grid.appendChild(renderCard(stock)));
+
+                asOfDate.textContent = formatAsOf(payload.as_of);
+                refreshState.textContent = 'Live';
+                errorBox.style.display = 'none';
+                errorBox.textContent = '';
+            } catch (error) {
+                refreshState.textContent = 'Offline';
+                errorBox.textContent = `Unable to load world markets: ${error.message}`;
+                errorBox.style.display = 'block';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchWorldData();
+            setInterval(fetchWorldData, REFRESH_MS);
+        });
+    </script>
+</body>
+</html>
