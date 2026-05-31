@@ -45,7 +45,7 @@ pm2 start worldindex-server.js --name "worldindex-server"
 pm2 save
 ```
 
-### 3. Apache config — add to `inter-net.no-ip.com-ssl.conf`
+### 3. Apache config — add to e.g. `inter-net.no-ip.com-ssl.conf`
 ```apache
 ProxyPass /world-api http://localhost:3002/world-api
 ProxyPassReverse /world-api http://localhost:3002/world-api
@@ -55,7 +55,6 @@ ProxyPassReverse /world-api http://localhost:3002/world-api
 ```bash
 sudo systemctl reload apache2
 ```
-
 
 
 ## PM2 Useful Commands
