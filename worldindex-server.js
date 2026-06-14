@@ -17,6 +17,7 @@ const MARKETS = [
         yahooTableSymbols: ['^DJI', 'DJI'],
         name: 'Dow Jones Industrial Average',
         chartUrl: 'https://www.tradingview.com/chart/pLzimNtz/?symbol=DJI',
+        yahooChartUrl: 'https://finance.yahoo.com/chart/%5EDJI',
         icon: 'DJ',
         accent: '#f59e0b',
     },
@@ -26,6 +27,7 @@ const MARKETS = [
         yahooTableSymbols: ['^IXIC', 'IXIC'],
         name: 'Nasdaq Composite',
         chartUrl: 'https://www.tradingview.com/chart/pLzimNtz/?symbol=IXIC',
+        yahooChartUrl: 'https://finance.yahoo.com/chart/%5EIXIC',
         icon: 'NQ',
         accent: '#22c55e',
     },
@@ -35,6 +37,7 @@ const MARKETS = [
         yahooTableSymbols: ['^GSPC', 'GSPC', '^SPX', 'SPX'],
         name: 'S&P 500',
         chartUrl: 'https://www.tradingview.com/chart/pLzimNtz/?symbol=SPX',
+        yahooChartUrl: 'https://finance.yahoo.com/chart/%5EGSPC',
         icon: 'S5',
         accent: '#38bdf8',
     },
@@ -44,6 +47,7 @@ const MARKETS = [
         yahooTableSymbols: ['^N225', 'N225', 'NI225'],
         name: 'Nikkei 225',
         chartUrl: 'https://www.tradingview.com/chart/pLzimNtz/?symbol=NI225',
+        yahooChartUrl: 'https://finance.yahoo.com/chart/%5EN225',
         icon: 'JP',
         accent: '#ef4444',
     },
@@ -53,6 +57,7 @@ const MARKETS = [
         yahooTableSymbols: ['^TWII', 'TWII', 'IX0001'],
         name: 'Taiwan Weighted',
         chartUrl: 'https://www.tradingview.com/chart/pLzimNtz/?symbol=IX0001',
+        yahooChartUrl: 'https://finance.yahoo.com/chart/%5ETWII',
         icon: 'TW',
         accent: '#8b5cf6',
     },
@@ -62,6 +67,7 @@ const MARKETS = [
         yahooTableSymbols: ['^KS11', 'KS11', 'KOSPI'],
         name: 'KOSPI',
         chartUrl: 'https://www.tradingview.com/chart/pLzimNtz/?symbol=KOSPI',
+        yahooChartUrl: 'https://finance.yahoo.com/chart/%5EKS11',
         icon: 'KR',
         accent: '#0ea5e9',
     },
@@ -72,6 +78,7 @@ const MARKETS = [
         name: 'MSCI World Index',
         yahooQuoteUrl: 'https://finance.yahoo.com/quote/%5E990100-USD-STRD/',
         chartUrl: 'https://finance.yahoo.com/quote/%5E990100-USD-STRD/',
+        yahooChartUrl: 'https://finance.yahoo.com/chart/%5E990100-USD-STRD',
         icon: 'MS',
         accent: '#f97316',
     },
@@ -81,6 +88,7 @@ const MARKETS = [
         yahooTableSymbols: ['^SOX', 'SOX'],
         name: 'PHLX Semiconductor Index',
         chartUrl: 'https://www.tradingview.com/chart/pLzimNtz/?symbol=SOX',
+        yahooChartUrl: 'https://finance.yahoo.com/chart/%5ESOX',
         icon: 'SOX',
         accent: '#facc15',
     },
@@ -91,6 +99,7 @@ const MARKETS = [
         name: 'Hang Seng Index',
         yahooQuoteUrl: 'https://hk.finance.yahoo.com/quote/%5EHSI/',
         chartUrl: 'https://www.tradingview.com/chart/pLzimNtz/?symbol=HSI',
+        yahooChartUrl: 'https://finance.yahoo.com/chart/%5EHSI',
         icon: 'HK',
         accent: '#14b8a6',
     },
@@ -237,6 +246,26 @@ function fetchText(url, redirectCount = 0) {
         req.on('error', reject);
         req.on('timeout', () => req.destroy(new Error(`Timeout fetching ${url}`)));
     });
+}
+
+async function fetchChart1M(yahooSymbol) {
+    try {
+        const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSymbol)}?interval=1d&range=1mo&_=${Date.now()}`;
+        const json = await fetchJson(url);
+        const result = json?.chart?.result?.[0];
+        if (!result) return null;
+        const closes = result.indicators?.quote?.[0]?.close || [];
+        const timestamps = result.timestamp || [];
+        const points = [];
+        for (let i = 0; i < closes.length; i++) {
+            if (closes[i] != null && timestamps[i] != null) {
+                points.push({ t: timestamps[i], c: closes[i] });
+            }
+        }
+        return points.length >= 2 ? points : null;
+    } catch {
+        return null;
+    }
 }
 
 function extractYahooField(html, field) {
@@ -624,6 +653,8 @@ async function fetchMarketRow(market, quote = null, tableRow = null) {
             );
         }
 
+        const chart1m = await fetchChart1M(market.yahooSymbol);
+
         return {
             symbol: market.symbol,
             name: market.name,
@@ -634,6 +665,8 @@ async function fetchMarketRow(market, quote = null, tableRow = null) {
             icon: market.icon,
             accent: market.accent,
             chart_url: market.chartUrl,
+            yahoo_chart_url: market.yahooChartUrl || null,
+            chart_1m: chart1m,
             source_symbol: market.yahooSymbol,
             source: 'Yahoo Finance quote page',
             source_detail: sourceDetail,
@@ -650,6 +683,8 @@ async function fetchMarketRow(market, quote = null, tableRow = null) {
             icon: market.icon,
             accent: market.accent,
             chart_url: market.chartUrl,
+            yahoo_chart_url: market.yahooChartUrl || null,
+            chart_1m: null,
             source_symbol: market.yahooSymbol,
             source: 'Yahoo Finance quote page',
             source_detail: sourceDetail,

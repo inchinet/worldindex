@@ -115,18 +115,18 @@
             display: grid;
             grid-template-columns: repeat(2, minmax(0, 1fr));
             gap: 14px;
+            align-items: start;
         }
 
+        /* Card is now a div (not <a>) to hold both data + chart + link */
         .card {
             display: flex;
-            gap: 14px;
-            align-items: flex-start;
+            flex-direction: column;
             padding: 18px;
             border-radius: 22px;
             border: 1px solid var(--panel-border);
             background: linear-gradient(180deg, rgba(15, 23, 42, 0.88), rgba(7, 12, 24, 0.88));
             box-shadow: 0 14px 36px rgba(0, 0, 0, 0.2);
-            text-decoration: none;
             color: inherit;
             transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
         }
@@ -135,6 +135,13 @@
             transform: translateY(-2px);
             border-color: rgba(125, 211, 252, 0.42);
             box-shadow: 0 18px 42px rgba(0, 0, 0, 0.28);
+        }
+
+        /* Top row: icon + content */
+        .card-top {
+            display: flex;
+            gap: 14px;
+            align-items: flex-start;
         }
 
         .icon {
@@ -225,6 +232,85 @@
             color: #d9e2f2;
         }
 
+        /* ── Sparkline chart area ── */
+        .chart-area {
+            margin-top: 14px;
+            border-top: 1px solid var(--panel-border);
+            padding-top: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .chart-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .chart-label {
+            font-size: 0.74rem;
+            color: var(--muted);
+            white-space: nowrap;
+        }
+
+        .sparkline-wrap {
+            flex: 1;
+            height: 56px;
+            position: relative;
+            border-radius: 10px;
+            overflow: hidden;
+            background: rgba(255,255,255,0.025);
+        }
+
+        .sparkline-wrap svg {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        .sparkline-loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: var(--muted);
+            font-size: 0.78rem;
+        }
+
+        .sparkline-skeleton {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, rgba(255,255,255,0.03), rgba(255,255,255,0.08), rgba(255,255,255,0.03));
+            background-size: 220% 100%;
+            animation: pulse 1.15s ease-in-out infinite;
+            border-radius: 10px;
+        }
+
+        .chart-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.74rem;
+            color: var(--accent);
+            text-decoration: none;
+            background: rgba(125, 211, 252, 0.08);
+            border: 1px solid rgba(125, 211, 252, 0.2);
+            border-radius: 8px;
+            padding: 4px 8px;
+            white-space: nowrap;
+            transition: background 0.15s, border-color 0.15s;
+        }
+        .chart-btn:hover {
+            background: rgba(125, 211, 252, 0.16);
+            border-color: rgba(125, 211, 252, 0.4);
+        }
+        .chart-btn svg {
+            width: 10px;
+            height: 10px;
+            flex-shrink: 0;
+        }
+
         .footer {
             margin-top: 14px;
             color: var(--muted);
@@ -246,7 +332,7 @@
         }
 
         .skeleton {
-            min-height: 166px;
+            height: 186px;
             background: linear-gradient(90deg, rgba(255,255,255,0.03), rgba(255,255,255,0.08), rgba(255,255,255,0.03));
             background-size: 220% 100%;
             animation: pulse 1.15s ease-in-out infinite;
@@ -281,7 +367,7 @@
                 <span class="pill">Auto refresh: 60s</span>
             </div>
             <div class="note">
-                Click any row to open its market chart.
+                Chart shows 1-month daily close. Click <strong>Yahoo Chart ↗</strong> to open interactive chart.
             </div>
             <div id="error-box" class="error"></div>
         </section>
@@ -305,6 +391,20 @@
 
     <script>
         const marketsOrder = ['DJI', 'IXIC', 'SPX', 'NI225', 'IX0001', 'KOSPI', 'MCSI', 'SOX', 'HSI'];
+
+        // Yahoo Finance chart page URLs
+        const yahooChartUrlMap = {
+            'DJI':    'https://finance.yahoo.com/chart/%5EDJI',
+            'IXIC':   'https://finance.yahoo.com/chart/%5EIXIC',
+            'SPX':    'https://finance.yahoo.com/chart/%5EGSPC',
+            'NI225':  'https://finance.yahoo.com/chart/%5EN225',
+            'IX0001': 'https://finance.yahoo.com/chart/%5ETWII',
+            'KOSPI':  'https://finance.yahoo.com/chart/%5EKS11',
+            'MCSI':   'https://finance.yahoo.com/chart/%5E990100-USD-STRD',
+            'SOX':    'https://finance.yahoo.com/chart/%5ESOX',
+            'HSI':    'https://finance.yahoo.com/chart/%5EHSI',
+        };
+
         const REFRESH_MS = 60000; // 60s
 
         function getApiUrl() {
@@ -334,37 +434,107 @@
             return n > 0 ? 'positive' : 'negative';
         }
 
+        // ── Sparkline SVG renderer ──────────────────────────────────────
+        function buildSparklineSVG(closes, accent, isPositive) {
+            const W = 400, H = 56;
+            const pad = { l: 0, r: 0, t: 6, b: 6 };
+            const innerW = W - pad.l - pad.r;
+            const innerH = H - pad.t - pad.b;
+
+            const min = Math.min(...closes);
+            const max = Math.max(...closes);
+            const range = max - min || 1;
+
+            const pts = closes.map((v, i) => {
+                const x = pad.l + (i / (closes.length - 1)) * innerW;
+                const y = pad.t + (1 - (v - min) / range) * innerH;
+                return [x, y];
+            });
+
+            const lineColor = isPositive ? '#22c55e' : '#ef4444';
+            const fillColor = isPositive ? 'rgba(34,197,94,0.12)' : 'rgba(239,68,68,0.12)';
+
+            // Build polyline path
+            const linePts = pts.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(' ');
+
+            // Build fill area (close down to bottom)
+            const fillPts = [
+                `${pts[0][0].toFixed(1)},${H}`,
+                ...pts.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`),
+                `${pts[pts.length - 1][0].toFixed(1)},${H}`,
+            ].join(' ');
+
+            // Last point dot
+            const [lx, ly] = pts[pts.length - 1];
+
+            return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="sg-${accent.replace('#','')}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="${lineColor}" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="${lineColor}" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <polygon points="${fillPts}" fill="url(#sg-${accent.replace('#','')})" />
+  <polyline points="${linePts}" fill="none" stroke="${lineColor}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="${lx.toFixed(1)}" cy="${ly.toFixed(1)}" r="3" fill="${lineColor}"/>
+</svg>`;
+        }
+
+
+        // ── Render one market card ──────────────────────────────────────
         function renderCard(stock) {
-            const card = document.createElement('a');
+            const card = document.createElement('div');
             card.className = 'card';
-            card.href = stock.chart_url || '#';
-            card.target = '_blank';
-            card.rel = 'noopener noreferrer';
 
             const accent = stock.accent || '#64748b';
             const iconLabel = stock.icon || stock.symbol.slice(0, 2);
             const percentClass = changeClass(stock.percent_change);
+            const isPositive = percentClass === 'positive';
+            const yahooChartUrl = yahooChartUrlMap[stock.symbol] || stock.chart_url || '#';
+
+            // Render sparkline from server-provided chart_1m
+            const pts = Array.isArray(stock.chart_1m) ? stock.chart_1m : null;
+            let sparklineHtml = '<div class="sparkline-loading">—</div>';
+            if (pts && pts.length >= 2) {
+                const closes = pts.map(p => p.c).filter(v => v != null && Number.isFinite(v));
+                if (closes.length >= 2) sparklineHtml = buildSparklineSVG(closes, accent, isPositive);
+            }
 
             card.innerHTML = `
-                <div class="icon" style="background: linear-gradient(135deg, ${accent}, #111827);">
-                    ${iconLabel}
-                </div>
-                <div class="content">
-                    <div class="topline">
-                        <div>
-                            <div class="symbol">${stock.symbol}</div>
-                            <div class="name">${stock.name}</div>
-                        </div>
-                        <div class="change ${percentClass}">${stock.change} ${stock.percent_change}</div>
+                <div class="card-top">
+                    <div class="icon" style="background: linear-gradient(135deg, ${accent}, #111827);">
+                        ${iconLabel}
                     </div>
-                    <div class="price-row">
-                        <div class="price">${stock.price}</div>
-                        <div class="meta">
-                            <div>Vol: <strong>${stock.volume}</strong></div>
+                    <div class="content">
+                        <div class="topline">
+                            <div>
+                                <div class="symbol">${stock.symbol}</div>
+                                <div class="name">${stock.name}</div>
+                            </div>
+                            <div class="change ${percentClass}">${stock.change} ${stock.percent_change}</div>
                         </div>
+                        <div class="price-row">
+                            <div class="price">${stock.price}</div>
+                            <div class="meta">
+                                <div>Vol: <strong>${stock.volume}</strong></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="chart-area">
+                    <div class="chart-row">
+                        <span class="chart-label">1M</span>
+                        <div class="sparkline-wrap">${sparklineHtml}</div>
+                        <a class="chart-btn" href="${yahooChartUrl}" target="_blank" rel="noopener noreferrer">
+                            Yahoo Chart
+                            <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <path d="M1 9L9 1M9 1H4M9 1V6"/>
+                            </svg>
+                        </a>
                     </div>
                 </div>
             `;
+
             return card;
         }
 
