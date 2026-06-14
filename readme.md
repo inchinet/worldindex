@@ -14,7 +14,7 @@ Real-time global stock market dashboard showing major world indices with live pr
 ## Indices Covered
 
 | # | Symbol | Name | Chart Link |
-|---|--------|------|-----------||
+|---|--------|------|-----------|
 | 1 | DJI | Dow Jones Industrial Average | TradingView |
 | 2 | IXIC | Nasdaq Composite | TradingView |
 | 3 | SPX | S&P 500 | TradingView |
